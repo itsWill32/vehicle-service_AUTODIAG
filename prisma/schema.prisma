@@ -1,0 +1,149 @@
+// ============================================
+// VEHICLE SERVICE - PRISMA SCHEMA
+// AutoDiag Project
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AGGREGATE ROOT: Vehicle
+// ============================================
+model Vehicle {
+  id       String  @id @default(uuid())
+  ownerId  String  // Referencia a User (Auth Service)
+  
+  // VehicleInfo VO
+  brand    String
+  model    String
+  year     Int
+  vin      String  @unique  // Vehicle Identification Number
+  color    String
+  photoUrl String?
+  
+  // LicensePlate VO
+  licensePlate String @unique
+  
+  // Mileage VO
+  currentMileage Int @default(0)
+  
+  // Status
+  isActive  Boolean  @default(true)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Child Entities (Relationships)
+  maintenanceHistory MaintenanceHistory[]
+  serviceReminders   ServiceReminder[]
+  
+  @@index([ownerId])
+  @@index([licensePlate])
+  @@index([vin])
+  @@map("vehicles")
+}
+
+// ============================================
+// CHILD ENTITY: MaintenanceHistory
+// ============================================
+model MaintenanceHistory {
+  id         String   @id @default(uuid())
+  vehicleId  String
+  vehicle    Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  // ServiceType VO
+  serviceType        ServiceType
+  serviceDescription String?
+  
+  // Service details
+  serviceDate       DateTime
+  mileageAtService  Int
+  
+  // Money VO
+  costAmount   Decimal  @db.Decimal(10, 2)
+  costCurrency String   @default("MXN")
+  
+  // Workshop reference (optional - puede ser servicio externo)
+  workshopId String?
+  
+  // Appointment reference (optional - si se agendó por la app)
+  appointmentId String?
+  
+  // Additional details
+  workPerformed    String?  @db.Text
+  recommendations  String?  @db.Text
+  invoicePhotoUrls String[] // Array de URLs
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([vehicleId])
+  @@index([serviceDate])
+  @@map("maintenance_history")
+}
+
+// ============================================
+// CHILD ENTITY: ServiceReminder
+// ============================================
+model ServiceReminder {
+  id        String  @id @default(uuid())
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  // ServiceType VO
+  serviceType        ServiceType
+  serviceDescription String?
+  
+  // DueCondition VO
+  dueDate     DateTime?
+  dueMileage  Int?
+  
+  // ReminderStatus VO
+  status ReminderStatus @default(PENDING)
+  
+  // If completed
+  completedMaintenanceId String?
+  
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastNotifiedAt   DateTime?
+  
+  @@index([vehicleId])
+  @@index([status])
+  @@map("service_reminders")
+}
+
+// ============================================
+// ENUMS (Value Objects)
+// ============================================
+enum ServiceType {
+  OIL_CHANGE
+  TIRE_ROTATION
+  BRAKE_SERVICE
+  TRANSMISSION_SERVICE
+  ENGINE_TUNE_UP
+  AIR_FILTER_REPLACEMENT
+  BATTERY_REPLACEMENT
+  ALIGNMENT
+  SUSPENSION_REPAIR
+  ELECTRICAL_REPAIR
+  DIAGNOSTIC
+  GENERAL_MAINTENANCE
+  OTHER
+}
+
+enum ReminderStatus {
+  PENDING
+  NOTIFIED
+  COMPLETED
+  POSTPONED
+  CANCELLED
+}
