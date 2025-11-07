@@ -1,9 +1,0 @@
-node_modules
-dist
-.env
-.git
-*.md
-.vscode
-.idea
-coverage
-.nyc_output
