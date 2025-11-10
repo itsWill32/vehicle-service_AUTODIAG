@@ -1,7 +1,5 @@
-// ============================================
-// VEHICLE SERVICE - PRISMA SCHEMA
-// AutoDiag Project
-// ============================================
+// This is your Prisma schema file for Vehicle Service
+// Learn more: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -13,137 +11,123 @@ datasource db {
 }
 
 // ============================================
-// AGGREGATE ROOT: Vehicle
+// VEHICLE SERVICE MODELS
 // ============================================
+
 model Vehicle {
-  id       String  @id @default(uuid())
-  ownerId  String  // Referencia a User (Auth Service)
+  id          String   @id @default(uuid())
+  userId      String   // Foreign key to Auth Service
   
-  // VehicleInfo VO
-  brand    String
-  model    String
-  year     Int
-  vin      String  @unique  // Vehicle Identification Number
-  color    String
-  photoUrl String?
+  // Basic info
+  make        String   // Marca (Toyota, Honda, etc.)
+  model       String   // Modelo (Corolla, Civic, etc.)
+  year        Int
+  plate       String   @unique
+  vin         String?  @unique // Vehicle Identification Number
+  color       String?
   
-  // LicensePlate VO
-  licensePlate String @unique
+  // Specs
+  engineType  String?  // Gasolina, Diesel, Eléctrico, Híbrido
+  transmission String? // Manual, Automático
+  mileage     Int?     // Kilometraje actual
   
-  // Mileage VO
-  currentMileage Int @default(0)
+  // Insurance & Docs
+  insuranceCompany String?
+  insurancePolicy  String?
+  insuranceExpiry  DateTime?
+  
+  // Photo
+  photo       String?
   
   // Status
-  isActive  Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  
+  // Relationships
+  maintenanceRecords MaintenanceRecord[]
+  reminders          ServiceReminder[]
   
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
-  // Child Entities (Relationships)
-  maintenanceHistory MaintenanceHistory[]
-  serviceReminders   ServiceReminder[]
-  
-  @@index([ownerId])
-  @@index([licensePlate])
+  @@index([userId])
+  @@index([plate])
   @@index([vin])
   @@map("vehicles")
 }
 
 // ============================================
-// CHILD ENTITY: MaintenanceHistory
+// MAINTENANCE RECORDS
 // ============================================
-model MaintenanceHistory {
-  id         String   @id @default(uuid())
-  vehicleId  String
-  vehicle    Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  
-  // ServiceType VO
-  serviceType        ServiceType
-  serviceDescription String?
+
+model MaintenanceRecord {
+  id          String   @id @default(uuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   
   // Service details
-  serviceDate       DateTime
-  mileageAtService  Int
+  serviceType String   // Cambio de aceite, Revisión, Reparación, etc.
+  description String
+  workshopId  String?  // Foreign key to Workshop Service
+  workshopName String?
   
-  // Money VO
-  costAmount   Decimal  @db.Decimal(10, 2)
-  costCurrency String   @default("MXN")
+  // Costs
+  laborCost   Float    @default(0)
+  partsCost   Float    @default(0)
+  totalCost   Float
   
-  // Workshop reference (optional - puede ser servicio externo)
-  workshopId String?
+  // Mileage at service
+  mileageAt   Int?
   
-  // Appointment reference (optional - si se agendó por la app)
-  appointmentId String?
+  // Date
+  serviceDate DateTime
   
-  // Additional details
-  workPerformed    String?  @db.Text
-  recommendations  String?  @db.Text
-  invoicePhotoUrls String[] // Array de URLs
+  // Notes
+  notes       String?
   
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Attachments
+  invoiceUrl  String?
+  photos      String[] // Array of photo URLs
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   @@index([vehicleId])
   @@index([serviceDate])
-  @@map("maintenance_history")
+  @@map("maintenance_records")
 }
 
 // ============================================
-// CHILD ENTITY: ServiceReminder
+// SERVICE REMINDERS
 // ============================================
+
 model ServiceReminder {
-  id        String  @id @default(uuid())
-  vehicleId String
-  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   
-  // ServiceType VO
-  serviceType        ServiceType
-  serviceDescription String?
+  // Reminder details
+  serviceType String   // Tipo de servicio a recordar
+  description String?
   
-  // DueCondition VO
-  dueDate     DateTime?
-  dueMileage  Int?
+  // Trigger conditions (al menos uno debe estar definido)
+  reminderMileage Int?    // Recordar al llegar a X km
+  reminderDate    DateTime? // Recordar en fecha específica
   
-  // ReminderStatus VO
-  status ReminderStatus @default(PENDING)
+  // Status
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
   
-  // If completed
-  completedMaintenanceId String?
+  // Notification
+  lastNotified DateTime?
   
   // Timestamps
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  lastNotifiedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   @@index([vehicleId])
-  @@index([status])
+  @@index([reminderDate])
+  @@index([isCompleted])
   @@map("service_reminders")
-}
-
-// ============================================
-// ENUMS (Value Objects)
-// ============================================
-enum ServiceType {
-  OIL_CHANGE
-  TIRE_ROTATION
-  BRAKE_SERVICE
-  TRANSMISSION_SERVICE
-  ENGINE_TUNE_UP
-  AIR_FILTER_REPLACEMENT
-  BATTERY_REPLACEMENT
-  ALIGNMENT
-  SUSPENSION_REPAIR
-  ELECTRICAL_REPAIR
-  DIAGNOSTIC
-  GENERAL_MAINTENANCE
-  OTHER
-}
-
-enum ReminderStatus {
-  PENDING
-  NOTIFIED
-  COMPLETED
-  POSTPONED
-  CANCELLED
 }
