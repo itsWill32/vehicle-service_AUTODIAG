@@ -1,6 +1,3 @@
-// This is your Prisma schema file for Vehicle Service
-// Learn more: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,124 +7,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// VEHICLE SERVICE MODELS
-// ============================================
+// ==========================================
+// VEHICLE AGGREGATE
+// ==========================================
 
 model Vehicle {
-  id          String   @id @default(uuid())
-  userId      String   // Foreign key to Auth Service
+  id             String   @id @default(uuid())
+  ownerId        String   @map("owner_id")
+  brand          String
+  model          String
+  year           Int
+  licensePlate   String   @unique @map("license_plate")
+  vin            String?  @unique
+  currentMileage Int      @default(0) @map("current_mileage")
+  photoUrl       String?  @map("photo_url")
   
-  // Basic info
-  make        String   // Marca (Toyota, Honda, etc.)
-  model       String   // Modelo (Corolla, Civic, etc.)
-  year        Int
-  plate       String   @unique
-  vin         String?  @unique // Vehicle Identification Number
-  color       String?
-  
-  // Specs
-  engineType  String?  // Gasolina, Diesel, Eléctrico, Híbrido
-  transmission String? // Manual, Automático
-  mileage     Int?     // Kilometraje actual
-  
-  // Insurance & Docs
-  insuranceCompany String?
-  insurancePolicy  String?
-  insuranceExpiry  DateTime?
-  
-  // Photo
-  photo       String?
-  
-  // Status
-  isActive    Boolean  @default(true)
-  
-  // Relationships
-  maintenanceRecords MaintenanceRecord[]
+  // Relations
+  maintenanceHistory MaintenanceHistory[]
   reminders          ServiceReminder[]
   
-  // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@index([userId])
-  @@index([plate])
-  @@index([vin])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([ownerId])
   @@map("vehicles")
 }
 
-// ============================================
-// MAINTENANCE RECORDS
-// ============================================
+// ==========================================
+// MAINTENANCE HISTORY
+// ==========================================
 
-model MaintenanceRecord {
-  id          String   @id @default(uuid())
-  vehicleId   String
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+model MaintenanceHistory {
+  id               String   @id @default(uuid())
+  vehicleId        String   @map("vehicle_id")
+  serviceType      String   @map("service_type")
+  description      String?
+  serviceDate      DateTime @map("service_date")
+  mileageAtService Int      @map("mileage_at_service")
+  cost             Float?
+  currency         String   @default("MXN")
+  workshopName     String?  @map("workshop_name")
+  invoiceUrl       String?  @map("invoice_url")
+  notes            String?
   
-  // Service details
-  serviceType String   // Cambio de aceite, Revisión, Reparación, etc.
-  description String
-  workshopId  String?  // Foreign key to Workshop Service
-  workshopName String?
+  // Relations
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   
-  // Costs
-  laborCost   Float    @default(0)
-  partsCost   Float    @default(0)
-  totalCost   Float
-  
-  // Mileage at service
-  mileageAt   Int?
-  
-  // Date
-  serviceDate DateTime
-  
-  // Notes
-  notes       String?
-  
-  // Attachments
-  invoiceUrl  String?
-  photos      String[] // Array of photo URLs
-  
-  // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt DateTime @default(now()) @map("created_at")
+
   @@index([vehicleId])
   @@index([serviceDate])
-  @@map("maintenance_records")
+  @@map("maintenance_history")
 }
 
-// ============================================
+// ==========================================
 // SERVICE REMINDERS
-// ============================================
+// ==========================================
 
 model ServiceReminder {
-  id          String   @id @default(uuid())
-  vehicleId   String
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  id             String    @id @default(uuid())
+  vehicleId      String    @map("vehicle_id")
+  serviceType    String    @map("service_type")
+  description    String?
+  dueType        String    @map("due_type")
+  dueValue       String    @map("due_value")
+  status         String    @default("PENDING")
+  postponedUntil DateTime? @map("postponed_until")
   
-  // Reminder details
-  serviceType String   // Tipo de servicio a recordar
-  description String?
+  // Relations
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   
-  // Trigger conditions (al menos uno debe estar definido)
-  reminderMileage Int?    // Recordar al llegar a X km
-  reminderDate    DateTime? // Recordar en fecha específica
-  
-  // Status
-  isCompleted Boolean  @default(false)
-  completedAt DateTime?
-  
-  // Notification
-  lastNotified DateTime?
-  
-  // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt DateTime @default(now()) @map("created_at")
+
   @@index([vehicleId])
-  @@index([reminderDate])
-  @@index([isCompleted])
+  @@index([status])
   @@map("service_reminders")
 }
