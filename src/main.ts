@@ -7,7 +7,8 @@ import { HttpExceptionFilter } from './infrastructure/http/filters/http-exceptio
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api/vehicles');
+
+  app.setGlobalPrefix('api');
 
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
