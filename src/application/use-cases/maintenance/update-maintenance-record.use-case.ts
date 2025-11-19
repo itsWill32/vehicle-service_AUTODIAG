@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { IVehicleRepository } from '../../../domain/repositories/vehicle.repository.interface';
 import { IMaintenanceHistoryRepository } from '../../../domain/repositories/maintenance-history.repository.interface';
+import { MaintenanceHistory } from '../../../domain/entities/maintenance-history.entity'; // ← AGREGAR ESTA LÍNEA
 import {
   VehicleNotFoundException,
   VehicleNotOwnedByUserException,

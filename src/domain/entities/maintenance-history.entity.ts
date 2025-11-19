@@ -99,20 +99,20 @@ export class MaintenanceHistory {
     notes?: string,
   ): void {
     if (description !== undefined) {
-      this.validateDescription(description);
+      MaintenanceHistory.validateDescription(description);
       this.description = description;
     }
-
+  
     if (cost !== undefined) {
       this.cost = Money.create(cost, currency as any);
     }
-
+  
     if (invoiceUrl !== undefined) {
       this.invoiceUrl = invoiceUrl;
     }
-
+  
     if (notes !== undefined) {
-      this.validateNotes(notes);
+      MaintenanceHistory.validateNotes(notes);
       this.notes = notes;
     }
   }
