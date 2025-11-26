@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ForbiddenException } from '@nestjs/common';
 import { IVehicleRepository } from '../../../domain/repositories/vehicle.repository.interface';
 import { IMaintenanceHistoryRepository } from '../../../domain/repositories/maintenance-history.repository.interface';
 import { MaintenanceHistory } from '../../../domain/entities/maintenance-history.entity';
@@ -7,7 +7,6 @@ import {
   VehicleNotOwnedByUserException,
 } from '../../../domain/exceptions/vehicle.exceptions';
 import { MaintenanceHistoryDto } from '../../dtos/response/maintenance-history.dto';
-
 
 @Injectable()
 export class GetMaintenanceHistoryUseCase {
@@ -20,7 +19,8 @@ export class GetMaintenanceHistoryUseCase {
 
   async execute(
     vehicleId: string,
-    ownerId: string,
+    userId: string,
+    userRole: string,  
     serviceType?: string,
     fromDate?: Date,
     toDate?: Date,
@@ -31,8 +31,19 @@ export class GetMaintenanceHistoryUseCase {
       throw new VehicleNotFoundException(vehicleId);
     }
 
-    if (vehicle.getOwnerId() !== ownerId) {
-      throw new VehicleNotOwnedByUserException(vehicleId, ownerId);
+    if (userRole === 'VEHICLE_OWNER') {
+      if (vehicle.getOwnerId() !== userId) {
+        throw new VehicleNotOwnedByUserException(vehicleId, userId);
+      }
+    } else if (userRole === 'WORKSHOP_ADMIN') {
+
+      console.log(`[WORKSHOP_ADMIN] Consultando historial de vehículo ${vehicleId}`);
+    } else if (userRole === 'SYSTEM_ADMIN') {
+      console.log(`[SYSTEM_ADMIN] Consultando historial de vehículo ${vehicleId}`);
+    } else {
+      throw new ForbiddenException(
+        `Rol no autorizado para consultar historial: ${userRole}`
+      );
     }
 
     let history: MaintenanceHistory[];
@@ -68,6 +79,8 @@ export class GetMaintenanceHistoryUseCase {
       workshopName: record.getWorkshopName(),
       invoiceUrl: record.getInvoiceUrl(),
       notes: record.getNotes(),
+      createdBy: record.getCreatedBy(),        
+      createdByRole: record.getCreatedByRole(),
       createdAt: record.getCreatedAt(),
     };
   }

@@ -1,7 +1,7 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ForbiddenException } from '@nestjs/common';
 import { IVehicleRepository } from '../../../domain/repositories/vehicle.repository.interface';
 import { IMaintenanceHistoryRepository } from '../../../domain/repositories/maintenance-history.repository.interface';
-import { MaintenanceHistory } from '../../../domain/entities/maintenance-history.entity'; // ← AGREGAR ESTA LÍNEA
+import { MaintenanceHistory } from '../../../domain/entities/maintenance-history.entity';
 import {
   VehicleNotFoundException,
   VehicleNotOwnedByUserException,
@@ -12,7 +12,6 @@ import {
 } from '../../../domain/exceptions/maintenance.exceptions';
 import { UpdateMaintenanceDto } from '../../dtos/request/update-maintenance.dto';
 import { MaintenanceHistoryDto } from '../../dtos/response/maintenance-history.dto';
-
 
 @Injectable()
 export class UpdateMaintenanceRecordUseCase {
@@ -26,7 +25,8 @@ export class UpdateMaintenanceRecordUseCase {
   async execute(
     vehicleId: string,
     recordId: string,
-    ownerId: string,
+    userId: string,
+    userRole: string,  
     dto: UpdateMaintenanceDto,
   ): Promise<MaintenanceHistoryDto> {
     const vehicle = await this.vehicleRepository.findById(vehicleId);
@@ -35,8 +35,19 @@ export class UpdateMaintenanceRecordUseCase {
       throw new VehicleNotFoundException(vehicleId);
     }
 
-    if (vehicle.getOwnerId() !== ownerId) {
-      throw new VehicleNotOwnedByUserException(vehicleId, ownerId);
+    if (userRole === 'VEHICLE_OWNER') {
+      if (vehicle.getOwnerId() !== userId) {
+        throw new VehicleNotOwnedByUserException(vehicleId, userId);
+      }
+    } else if (userRole === 'WORKSHOP_ADMIN') {
+
+      console.log(`[WORKSHOP_ADMIN] Actualizando registro ${recordId}`);
+    } else if (userRole === 'SYSTEM_ADMIN') {
+      console.log(`[SYSTEM_ADMIN] Actualizando registro ${recordId}`);
+    } else {
+      throw new ForbiddenException(
+        `Rol no autorizado para actualizar registros: ${userRole}`
+      );
     }
 
     const record = await this.maintenanceRepository.findById(recordId);
@@ -75,6 +86,8 @@ export class UpdateMaintenanceRecordUseCase {
       workshopName: record.getWorkshopName(),
       invoiceUrl: record.getInvoiceUrl(),
       notes: record.getNotes(),
+      createdBy: record.getCreatedBy(),        
+      createdByRole: record.getCreatedByRole(),
       createdAt: record.getCreatedAt(),
     };
   }

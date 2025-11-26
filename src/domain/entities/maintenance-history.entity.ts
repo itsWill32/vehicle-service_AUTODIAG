@@ -2,7 +2,6 @@ import { ServiceType } from '../value-objects/service-type.vo';
 import { Money } from '../value-objects/money.vo';
 import { Mileage } from '../value-objects/mileage.vo';
 
-
 export class MaintenanceHistory {
   private constructor(
     private readonly id: string,
@@ -15,9 +14,10 @@ export class MaintenanceHistory {
     private workshopName: string | null,
     private invoiceUrl: string | null,
     private notes: string | null,
+    private readonly createdBy: string,        
+    private readonly createdByRole: string,    
     private readonly createdAt: Date,
   ) {}
-
 
   static create(
     id: string,
@@ -25,6 +25,8 @@ export class MaintenanceHistory {
     serviceType: string,
     serviceDate: Date,
     mileageAtService: number,
+    createdBy: string,           
+    createdByRole: string,       
     description?: string,
     cost?: number,
     currency?: string,
@@ -37,6 +39,7 @@ export class MaintenanceHistory {
     const costVO = cost !== undefined ? Money.create(cost, currency as any) : null;
 
     this.validateServiceDate(serviceDate);
+    this.validateRole(createdByRole);  
     if (description) this.validateDescription(description);
     if (workshopName) this.validateWorkshopName(workshopName);
     if (notes) this.validateNotes(notes);
@@ -52,10 +55,11 @@ export class MaintenanceHistory {
       workshopName || null,
       invoiceUrl || null,
       notes || null,
+      createdBy,        
+      createdByRole,    
       new Date(),
     );
   }
-
 
   static fromPrimitives(
     id: string,
@@ -69,6 +73,8 @@ export class MaintenanceHistory {
     workshopName: string | null,
     invoiceUrl: string | null,
     notes: string | null,
+    createdBy: string,        
+    createdByRole: string,    
     createdAt: Date,
   ): MaintenanceHistory {
     const serviceTypeVO = ServiceType.create(serviceType);
@@ -86,10 +92,11 @@ export class MaintenanceHistory {
       workshopName,
       invoiceUrl,
       notes,
+      createdBy,        
+      createdByRole,    
       createdAt,
     );
   }
-
 
   updateInfo(
     description?: string,
@@ -117,8 +124,6 @@ export class MaintenanceHistory {
     }
   }
 
-
-
   private static validateServiceDate(date: Date): void {
     if (!(date instanceof Date) || isNaN(date.getTime())) {
       throw new Error('Fecha de servicio inválida');
@@ -126,6 +131,15 @@ export class MaintenanceHistory {
 
     if (date > new Date()) {
       throw new Error('La fecha de servicio no puede ser futura');
+    }
+  }
+
+  private static validateRole(role: string): void {
+    const validRoles = ['VEHICLE_OWNER', 'WORKSHOP_ADMIN', 'SYSTEM_ADMIN'];
+    if (!validRoles.includes(role)) {
+      throw new Error(
+        `Rol inválido: ${role}. Roles válidos: ${validRoles.join(', ')}`
+      );
     }
   }
 
@@ -146,7 +160,6 @@ export class MaintenanceHistory {
       throw new Error('Las notas no deben exceder los 1000 caracteres');
     }
   }
-
 
   getId(): string {
     return this.id;
@@ -194,6 +207,14 @@ export class MaintenanceHistory {
 
   getNotes(): string | null {
     return this.notes;
+  }
+
+  getCreatedBy(): string {
+    return this.createdBy;
+  }
+
+  getCreatedByRole(): string {
+    return this.createdByRole;
   }
 
   getCreatedAt(): Date {

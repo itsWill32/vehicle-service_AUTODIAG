@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ForbiddenException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { IVehicleRepository } from '../../../domain/repositories/vehicle.repository.interface';
 import { IMaintenanceHistoryRepository } from '../../../domain/repositories/maintenance-history.repository.interface';
@@ -11,7 +11,6 @@ import { InvalidMileageAtServiceException } from '../../../domain/exceptions/mai
 import { CreateMaintenanceDto } from '../../dtos/request/create-maintenance.dto';
 import { MaintenanceHistoryDto } from '../../dtos/response/maintenance-history.dto';
 
-
 @Injectable()
 export class CreateMaintenanceRecordUseCase {
   constructor(
@@ -23,7 +22,8 @@ export class CreateMaintenanceRecordUseCase {
 
   async execute(
     vehicleId: string,
-    ownerId: string,
+    userId: string,
+    userRole: string,  
     dto: CreateMaintenanceDto,
   ): Promise<MaintenanceHistoryDto> {
     const vehicle = await this.vehicleRepository.findById(vehicleId);
@@ -32,8 +32,18 @@ export class CreateMaintenanceRecordUseCase {
       throw new VehicleNotFoundException(vehicleId);
     }
 
-    if (vehicle.getOwnerId() !== ownerId) {
-      throw new VehicleNotOwnedByUserException(vehicleId, ownerId);
+    if (userRole === 'VEHICLE_OWNER') {
+      if (vehicle.getOwnerId() !== userId) {
+        throw new VehicleNotOwnedByUserException(vehicleId, userId);
+      }
+    } else if (userRole === 'WORKSHOP_ADMIN') {
+      console.log(`[WORKSHOP_ADMIN] Creando registro para vehículo ${vehicleId}`);
+    } else if (userRole === 'SYSTEM_ADMIN') {
+      console.log(`[SYSTEM_ADMIN] Creando registro para vehículo ${vehicleId}`);
+    } else {
+      throw new ForbiddenException(
+        `Rol no autorizado para crear registros de mantenimiento: ${userRole}`
+      );
     }
 
     if (dto.mileageAtService > vehicle.getCurrentMileage()) {
@@ -49,6 +59,8 @@ export class CreateMaintenanceRecordUseCase {
       dto.serviceType,
       new Date(dto.serviceDate),
       dto.mileageAtService,
+      userId,     
+      userRole,   
       dto.description,
       dto.cost,
       dto.currency,
@@ -75,6 +87,8 @@ export class CreateMaintenanceRecordUseCase {
       workshopName: record.getWorkshopName(),
       invoiceUrl: record.getInvoiceUrl(),
       notes: record.getNotes(),
+      createdBy: record.getCreatedBy(),       
+      createdByRole: record.getCreatedByRole(),  
       createdAt: record.getCreatedAt(),
     };
   }

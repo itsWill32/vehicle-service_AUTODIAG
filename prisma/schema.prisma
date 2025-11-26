@@ -28,7 +28,7 @@ model Vehicle {
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
+  
   @@index([ownerId])
   @@map("vehicles")
 }
@@ -50,13 +50,18 @@ model MaintenanceHistory {
   invoiceUrl       String?  @map("invoice_url")
   notes            String?
   
+  createdBy        String   @map("created_by")
+  createdByRole    String   @map("created_by_role")
+  
   // Relations
   vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   
   createdAt DateTime @default(now()) @map("created_at")
-
+  
   @@index([vehicleId])
   @@index([serviceDate])
+  @@index([createdBy])        
+  @@index([createdByRole])    
   @@map("maintenance_history")
 }
 
@@ -78,7 +83,7 @@ model ServiceReminder {
   vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   
   createdAt DateTime @default(now()) @map("created_at")
-
+  
   @@index([vehicleId])
   @@index([status])
   @@map("service_reminders")

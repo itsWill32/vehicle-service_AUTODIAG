@@ -3,7 +3,6 @@ import { PrismaService } from '../prisma.service';
 import { IMaintenanceHistoryRepository } from '../../../domain/repositories/maintenance-history.repository.interface';
 import { MaintenanceHistory } from '../../../domain/entities/maintenance-history.entity';
 
-
 @Injectable()
 export class PrismaMaintenanceHistoryRepository implements IMaintenanceHistoryRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -21,6 +20,8 @@ export class PrismaMaintenanceHistoryRepository implements IMaintenanceHistoryRe
       workshopName: record.getWorkshopName(),
       invoiceUrl: record.getInvoiceUrl(),
       notes: record.getNotes(),
+      createdBy: record.getCreatedBy(),        
+      createdByRole: record.getCreatedByRole(),
     };
 
     const savedRecord = await this.prisma.maintenanceHistory.upsert({
@@ -104,6 +105,24 @@ export class PrismaMaintenanceHistoryRepository implements IMaintenanceHistoryRe
     return record ? this.toDomain(record) : null;
   }
 
+  async findByCreatedBy(createdBy: string): Promise<MaintenanceHistory[]> {
+    const records = await this.prisma.maintenanceHistory.findMany({
+      where: { createdBy },
+      orderBy: { serviceDate: 'desc' },
+    });
+
+    return records.map((r) => this.toDomain(r));
+  }
+
+  async findByWorkshop(workshopId: string): Promise<MaintenanceHistory[]> {
+    const records = await this.prisma.maintenanceHistory.findMany({
+      where: { workshopName: workshopId },
+      orderBy: { serviceDate: 'desc' },
+    });
+
+    return records.map((r) => this.toDomain(r));
+  }
+
   async delete(id: string): Promise<void> {
     await this.prisma.maintenanceHistory.delete({
       where: { id },
@@ -122,7 +141,6 @@ export class PrismaMaintenanceHistoryRepository implements IMaintenanceHistoryRe
     });
   }
 
-
   private toDomain(prismaRecord: any): MaintenanceHistory {
     return MaintenanceHistory.fromPrimitives(
       prismaRecord.id,
@@ -136,6 +154,8 @@ export class PrismaMaintenanceHistoryRepository implements IMaintenanceHistoryRe
       prismaRecord.workshopName,
       prismaRecord.invoiceUrl,
       prismaRecord.notes,
+      prismaRecord.createdBy,      
+      prismaRecord.createdByRole,  
       prismaRecord.createdAt,
     );
   }

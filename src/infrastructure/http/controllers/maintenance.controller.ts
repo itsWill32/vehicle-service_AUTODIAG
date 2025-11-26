@@ -7,6 +7,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,7 +18,6 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
 
 import {
   CreateMaintenanceDto,
@@ -31,18 +31,16 @@ import {
   UpdateMaintenanceRecordUseCase,
 } from '../../../application/use-cases/maintenance';
 
-
 @ApiTags('Maintenance')
 @ApiBearerAuth()
 @Controller('vehicles/:vehicleId/maintenance')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)  
 export class MaintenanceController {
   constructor(
     private readonly getMaintenanceHistoryUseCase: GetMaintenanceHistoryUseCase,
     private readonly createMaintenanceRecordUseCase: CreateMaintenanceRecordUseCase,
     private readonly updateMaintenanceRecordUseCase: UpdateMaintenanceRecordUseCase,
   ) {}
-
 
   @Get()
   @ApiOperation({ summary: 'Obtener historial de mantenimiento' })
@@ -73,24 +71,27 @@ export class MaintenanceController {
   @ApiResponse({ status: 403, description: 'El vehículo no pertenece al usuario' })
   @ApiResponse({ status: 404, description: 'Vehículo no encontrado' })
   async getMaintenanceHistory(
-    @CurrentUser() userId: string,
+    @Request() req: any,  
     @Param('vehicleId') vehicleId: string,
     @Query('serviceType') serviceType?: string,
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
   ): Promise<MaintenanceHistoryDto[]> {
+    const userId = req.user?.userId || req.user?.sub || req.user?.id;
+    const userRole = req.user?.role || 'VEHICLE_OWNER';
+
     const from = fromDate ? new Date(fromDate) : undefined;
     const to = toDate ? new Date(toDate) : undefined;
 
     return this.getMaintenanceHistoryUseCase.execute(
       vehicleId,
       userId,
+      userRole,      
       serviceType,
       from,
       to,
     );
   }
-
 
   @Post()
   @ApiOperation({ summary: 'Agregar registro de mantenimiento' })
@@ -105,13 +106,20 @@ export class MaintenanceController {
   @ApiResponse({ status: 403, description: 'El vehículo no pertenece al usuario' })
   @ApiResponse({ status: 404, description: 'Vehículo no encontrado' })
   async createMaintenanceRecord(
-    @CurrentUser() userId: string,
+    @Request() req: any,  
     @Param('vehicleId') vehicleId: string,
     @Body() dto: CreateMaintenanceDto,
   ): Promise<MaintenanceHistoryDto> {
-    return this.createMaintenanceRecordUseCase.execute(vehicleId, userId, dto);
-  }
+    const userId = req.user?.userId || req.user?.sub || req.user?.id;
+    const userRole = req.user?.role || 'VEHICLE_OWNER';
 
+    return this.createMaintenanceRecordUseCase.execute(
+      vehicleId,
+      userId,
+      userRole,  
+      dto
+    );
+  }
 
   @Patch(':recordId')
   @ApiOperation({ summary: 'Actualizar registro de mantenimiento' })
@@ -127,15 +135,19 @@ export class MaintenanceController {
   @ApiResponse({ status: 403, description: 'El vehículo no pertenece al usuario' })
   @ApiResponse({ status: 404, description: 'Registro no encontrado' })
   async updateMaintenanceRecord(
-    @CurrentUser() userId: string,
+    @Request() req: any,  
     @Param('vehicleId') vehicleId: string,
     @Param('recordId') recordId: string,
     @Body() dto: UpdateMaintenanceDto,
   ): Promise<MaintenanceHistoryDto> {
+    const userId = req.user?.userId || req.user?.sub || req.user?.id;
+    const userRole = req.user?.role || 'VEHICLE_OWNER';
+
     return this.updateMaintenanceRecordUseCase.execute(
       vehicleId,
       recordId,
       userId,
+      userRole,  
       dto,
     );
   }

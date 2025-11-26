@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { MaintenanceHistory } from '../../domain/entities/maintenance-history.entity';
 import { MaintenanceHistoryDto } from '../dtos/response/maintenance-history.dto';
 
-
 @Injectable()
 export class MaintenanceHistoryMapper {
 
@@ -19,15 +18,15 @@ export class MaintenanceHistoryMapper {
       workshopName: record.getWorkshopName(),
       invoiceUrl: record.getInvoiceUrl(),
       notes: record.getNotes(),
+      createdBy: record.getCreatedBy(),        
+      createdByRole: record.getCreatedByRole(),
       createdAt: record.getCreatedAt(),
     };
   }
 
-
   toDtoList(records: MaintenanceHistory[]): MaintenanceHistoryDto[] {
     return records.map((record) => this.toDto(record));
   }
-
 
   toJSON(record: MaintenanceHistory): Record<string, any> {
     return {
@@ -43,10 +42,11 @@ export class MaintenanceHistoryMapper {
       workshopName: record.getWorkshopName(),
       invoiceUrl: record.getInvoiceUrl(),
       notes: record.getNotes(),
+      createdBy: record.getCreatedBy(),        
+      createdByRole: record.getCreatedByRole(),
       createdAt: record.getCreatedAt().toISOString(),
     };
   }
-
 
   groupByServiceType(records: MaintenanceHistory[]): Record<string, MaintenanceHistoryDto[]> {
     const grouped: Record<string, MaintenanceHistoryDto[]> = {};

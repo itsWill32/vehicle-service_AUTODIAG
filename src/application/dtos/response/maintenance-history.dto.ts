@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-
 export class MaintenanceHistoryDto {
   @ApiProperty({
     description: 'ID del registro',
@@ -72,6 +71,19 @@ export class MaintenanceHistoryDto {
     nullable: true,
   })
   notes: string | null;
+
+  @ApiProperty({
+    description: 'ID del usuario que creó el registro',
+    example: '789e0123-e45b-67c8-d901-234567890abc',
+  })
+  createdBy: string;
+
+  @ApiProperty({
+    description: 'Rol del usuario que creó el registro',
+    example: 'WORKSHOP_ADMIN',
+    enum: ['VEHICLE_OWNER', 'WORKSHOP_ADMIN', 'SYSTEM_ADMIN'],
+  })
+  createdByRole: string;
 
   @ApiProperty({
     description: 'Fecha de creación del registro',
